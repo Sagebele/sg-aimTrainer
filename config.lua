@@ -7,6 +7,7 @@ Config.Locations.targets = {}
 Config.ped = nil 
 Config.cam = nil
 Config.exitKey = 322
+Config.speed = {}
 
 Config.Locations.MainNpc = {
     coords = vector3(1374.24, 3143.9, 39.5), 
@@ -16,17 +17,15 @@ Config.Locations.MainNpc = {
 
 Config.targets = {
     t1 = {
-        -- coords = vector3(1316.49, 3143.13, 39.5), became random
+        coords = vector3(0, 0, 0), -- coords will be set randomly
         details = {
             model = "a_m_y_hasjew_01",
             ped = nil, 
             heading = 283.38,
-            speed = 1.5, -- Speed multiplier for the target
-            runSpeed = 1.2, -- Speed multiplier for running
         }
     }, 
     t2 = {
-        -- coords = vector3(1326.54, 3149.05, 39.5), became random
+        coords = vector3(0, 0, 0),
         details = {
             model = "a_m_y_hasjew_01",
             ped = nil,
@@ -34,7 +33,7 @@ Config.targets = {
         }
     },
     t3 = {
-        -- coords = vector3(1305.09, 3154.35, 39.5), became random
+        coords = vector3(0, 0, 0),
         details = {
             model = "a_m_y_hasjew_01",
             ped = nil,
@@ -42,7 +41,7 @@ Config.targets = {
         }
     },
     t4 = {
-        -- coords = vector3(1309.24, 3136.5, 39.5), became random
+        coords = vector3(0, 0, 0),
         details = {
             model = "a_m_y_hasjew_01",
             ped = nil,
@@ -50,7 +49,7 @@ Config.targets = {
         }
     },
     t5 = {
-        -- coords = vector3(1320.24, 3136.5, 39.5), became random
+        coords = vector3(0, 0, 0),
         details = {
             model = "a_m_y_hasjew_01",
             ped = nil,
@@ -69,4 +68,9 @@ Config.Locations.Camera = {
 Config.Locations.center = {
     coords = vector3(1306.79, 3143.55, 39.5),
     radius = 5.5,
+}
+
+Config.speed = {
+        tSpeed = 2.5, -- Speed multiplier for the target
+        runSpeed = 2.5, -- Speed multiplier for running
 }

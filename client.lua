@@ -58,18 +58,18 @@ function Fixtargets()
     -- Ensure all targets are set up correctly
     local ped
     local tCount = 0
-    local speedMul = Config.targets.t1.details.speed or 1.5
-    local runSpeedMul = Config.targets.t1.details.runSpeed or 1.2
-    for _ in pairs(Config.targets) do
-        tCount = tCount + 1
-    end
-    for i=1, tCount do
-        ped = Config.targets["t" .. i].details.ped
+    local speedMul = Config.speed.runSpeed or 1.5
+    local runSpeedMul = Config.speed.runSpeed or 1.2
+
+    for i,pedN in pairs(Config.targets) do
+        ped = pedN.details.ped
+        print("fixing ped: ".. ped)
         if ped and DoesEntityExist(ped) then
             SetBlockingOfNonTemporaryEvents(ped, true)
             SetPedCanRagdoll(ped, false)
             SetEntityInvincible(ped, false) --can be shot
             SetPedDropsWeaponsWhenDead(ped, false)
+            FreezeEntityPosition(ped, false) -- Unfreeze the ped
             -- Make them run immediately
             TaskWanderStandard(ped, 10.0, 10)
             SetPedMoveRateOverride(ped, speedMul)
@@ -161,14 +161,7 @@ end)
 RegisterNetEvent('sg-aimlabs:spawnTargets', function()
     
     local targetModel = Config.targets.t1.details.model or "a_m_y_hasjew_01"
-    local positions = {
-        -- Config.targets.t1.coords,
-        -- Config.targets.t2.coords,
-        -- Config.targets.t3.coords,
-    }
-    for _ in pairs(Config.targets) do
-        positions[#positions + 1] = GetRandomPositionAround() -- Add random position
-    end
+    local positions = {}
     local targetHeading = Config.targets.t1.details.heading or 285.92
     local temp = 1
 
@@ -177,42 +170,40 @@ RegisterNetEvent('sg-aimlabs:spawnTargets', function()
         Wait(10) 
     end
 
-    for _, pos in ipairs(positions) do
-        local ped = CreatePed(4, targetModel, pos.x, pos.y, pos.z, 0.0, false, true)
-        
+    for _, pos in pairs(Config.targets) do
+        pos.coords = GetRandomPositionAround()
+        local ped = CreatePed(4, targetModel, pos.coords.x, pos.coords.y, pos.coords.z, 0.0, false, true)
         SetEntityInvincible(ped, true)
         FreezeEntityPosition(ped, true)
         TaskStartScenarioInPlace(ped, "WORLD_HUMAN_HANG_OUT_STREET", 0, true)
+        SetBlockingOfNonTemporaryEvents(ped, true)
+        pos.details.ped = ped
 
-        
-        
-        Config.targets["t" .. temp].details.ped = ped
-        temp = temp + 1
     end
 
 end)
 
 RegisterNetEvent('sg-aimlabs:deleteTargets', function()
-    local targetPeds = {
-        -- Config.targets.t1.details.ped,
-        -- Config.targets.t2.details.ped,
-        -- Config.targets.t3.details.ped,
-    }
-    for i in ipairs(Config.targets) do
-        targetPeds[#targetPeds + 1] = Config.targets["t" .. _].details.ped -- Add all target peds
-    end
-    local tTemp = 1
-    for _, ped in ipairs(targetPeds) do
-        if DoesEntityExist(ped) then
+    local counter = 0
+
+    for key, targetData in pairs(Config.targets) do
+        local ped = targetData.details.ped
+        if ped and DoesEntityExist(ped) then
             DeleteEntity(ped)
-            Config.targets["t"..tTemp].details.ped = nil
+            targetData.details.ped = nil
+            counter = counter + 1
+        else
+            print("[sg-aimlabs] Target does not exist or nil: " .. tostring(key))
         end
-
-        tTemp = tTemp + 1
-
     end
 
-    print("[sg-aimlabs] Targets deleted.")
+    if counter == 0 then
+        print("[sg-aimlabs] No targets to delete.")
+    else
+        print("[sg-aimlabs] All targets deleted successfully.")
+    end
+
+
 end)
 
 
@@ -232,15 +223,10 @@ RegisterNetEvent('sg-aimlabs:endTrainerCam', function()
 end)
 
 RegisterNetEvent('sg-aimlabs:playing', function()
-    local targets = {
-        -- Config.targets.t1.details.ped,
-        -- Config.targets.t2.details.ped,
-        -- Config.targets.t3.details.ped,
-    }
-    for i in ipairs(Config.targets) do
-        targets[#targets + 1] = Config.targets["t" .. i].details.ped -- Add all target peds
-    end
+
     local tTemp = 1
+    local killCount = 0
+    local iniCount = 5
     if Config.cam then
         RenderScriptCams(false, true, 500, true, true)
         DoScreenFadeOut(500)
@@ -256,32 +242,30 @@ RegisterNetEvent('sg-aimlabs:playing', function()
     Fixtargets()
     CreateThread(function()
         while true do
-            Wait(1000)        
+            Wait(500)        
             print("[sg-aimlabs] Checking targets...")
-            for _, Cped in ipairs(targets) do
-                if IsPedDeadOrDying(Cped, true) and Cped ~= nil then
-                    print("[sg-aimlabs] Target killed: " .. Cped)
+            for _, Cped in pairs(Config.targets) do
+                local currentPed = Cped.details.ped
+                if IsPedDeadOrDying(currentPed, true) and currentPed ~= nil then
+                    print("[sg-aimlabs] Target killed: " .. currentPed)
                     -- Delete the target
-                    DeleteEntity(Cped)
-                    Cped = nil
-                    Config.targets["t"..tTemp].details.ped = nil
+                    DeleteEntity(currentPed)
+                    Cped.details.ped = nil
                     
-                    -- killCount = killCount + 1
-                    -- print("[sg-aimlabs] Kill count: " .. killCount)
+                    killCount = killCount + 1
+                    print("[sg-aimlabs] Kill count: " .. killCount)
                 end
-                tTemp = tTemp + 1
             end
             if IsControlPressed(0, 73) then 
                     print("[sg-aimlabs] Exiting training...")
                     TriggerEvent('sg-aimlabs:deleteTargets')
                     -- TriggerEvent("sg-aimlabs:endTrainerCam")
                     break
-            -- elseif killCount >= 3 then
-            --     print("[sg-aimlabs] All targets killed! Training complete.")
-            --     break
+            elseif killCount == iniCount then
+                TriggerEvent('sg-aimlabs:spawnTargets')
+                Fixtargets()
+                iniCount = iniCount + 5
             end
-            
-            tTemp = 1 -- Reset for next check
         end
     end)
 end)
