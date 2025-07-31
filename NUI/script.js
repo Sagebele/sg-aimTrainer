@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     });
 
+
+
     // Handle Start button
     const startButton = document.querySelector(".button.start");
     if (startButton) 
@@ -64,6 +66,7 @@ function fetchToLua(data, callback) {
 function cleaningUI(){
     const container = document.querySelector(".container");
     container.style.display = "none"; // Hide the UI
+    document.querySelector(".cHud").style.display = "none";
     selectedOption = null; // Reset selected option
     document.querySelectorAll(".option").forEach((opt) => opt.classList.remove("selected")); // Remove selection from options
     uiVisible = false; // Reset the uiVisible flag
@@ -75,6 +78,7 @@ window.addEventListener("message", (event) => {
         if(event.data.status === true ) {
             console.log("Showing UI with config:", event.data.config);
             document.querySelector(".container").style.display = "block";
+            document.querySelector(".cHud").style.display = "block";
         }
         uiVisible = true; // Set UI visible flag
     }    

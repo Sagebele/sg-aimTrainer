@@ -6,8 +6,11 @@ Config.Locations.MainNpc ={}
 Config.Locations.targets = {}
 Config.ped = nil 
 Config.cam = nil
-Config.exitKey = 322
+Config.exitKey = 200
+Config.enterKey = 201
 Config.speed = {}
+Config.playing = false
+Config.killcount = 0
 
 Config.Locations.MainNpc = {
     coords = vector3(1374.24, 3143.9, 39.5), 
@@ -67,7 +70,7 @@ Config.Locations.Camera = {
 
 Config.Locations.center = {
     coords = vector3(1306.79, 3143.55, 39.5),
-    radius = 5.5,
+    radius = 6,
 }
 
 Config.speed = {
