@@ -8,13 +8,16 @@ local killCount = 0
 local pedModel = Config.Locations.MainNpc.model
 local pedCoords = Config.Locations.MainNpc.coords
 local pedHeading = Config.Locations.MainNpc.heading
+
 local EXIT_KEY = Config.exitKey or 322 -- Default to 322 if not set in config
 
 -------------------------
 --- Functions
 -------------------------
 function SpawnPed()
-    if pedSpawned then return end -- Prevent duplicate
+    if pedSpawned then 
+        return 
+    end -- Prevent duplicate
     pedSpawned = true
 
     RequestModel(pedModel)
@@ -100,6 +103,58 @@ function GetRandomPositionAround()
     return vector3(baseCoords.x + offsetX, baseCoords.y + offsetY, baseCoords.z)
 end
 
+function GetRandomHeading()
+    return math.random() * 360.0
+end
+
+function TargetSpawn(targetID)
+    local targetModel = Config.targets.t1.details.model
+    local targetCoord = GetRandomPositionAround()
+    local targetHeading = GetRandomHeading()
+    local wanderArea = Config.Locations.center.coords
+    local speedMul = Config.speed.tSpeed
+    local runSpeedMul = Config.speed.runSpeed
+    local radius = Config.Locations.center.radius
+    RequestModel(targetModel)
+    local t = targetID
+    while not HasModelLoaded(targetModel) do
+        Wait(10)
+    end
+
+    local ped = CreatePed(4, targetModel, targetCoord.x, targetCoord.y, targetCoord.z, targetHeading, true, true)
+
+    Config.targets[targetID].details.ped = ped
+
+    print(Config.ped)
+
+    SetBlockingOfNonTemporaryEvents(ped, true)
+    SetPedFleeAttributes(ped, 0, false) -- disable natural fleeing
+    SetPedCombatAttributes(ped, 17, true) -- ignore threats
+    SetPedCombatAttributes(ped, 46, true) -- keep running even if shot
+
+            -- No ragdoll or weapon drops
+    SetPedCanRagdoll(ped, false)
+    SetEntityInvincible(ped, false)
+    SetPedDropsWeaponsWhenDead(ped, false)
+            
+            -- Free to run in the battlezone area
+    FreezeEntityPosition(ped, false)
+    TaskWanderInArea(ped, wanderArea.x, wanderArea.y, wanderArea.z, radius, 10.0, 10.0)
+    SetPedMoveRateOverride(ped, speedMul)
+    SetRunSprintMultiplierForPlayer(ped, runSpeedMul)
+
+
+    print("[sg-aimlabs] New target created.")
+end
+
+
+function EnsureInfiniteAmmo()
+    local ped = PlayerPedId()
+    local weapon = GetSelectedPedWeapon(ped)
+    GiveWeaponToPed(ped, weapon, 9999, false, true)
+    SetPedInfiniteAmmo(ped, true, weapon)
+    SetPedInfiniteAmmoClip(ped, true)
+end
 
 -------------------------------------
 ----- Event Handlers
@@ -237,6 +292,7 @@ RegisterNetEvent('sg-aimlabs:playing', function()
     local tTemp = 1
     local killCount = 0
     local iniCount = 5
+    
     if Config.cam then
         RenderScriptCams(false, true, 500, true, true)
         DoScreenFadeOut(500)
@@ -250,31 +306,60 @@ RegisterNetEvent('sg-aimlabs:playing', function()
     end
     -- Unfreeze targets
     Fixtargets()
+    EnsureInfiniteAmmo()
     CreateThread(function()
         while true do
             Wait(500)        
-            print("[sg-aimlabs] Checking targets... every 0.5sec")
-            for _, Cped in pairs(Config.targets) do
-                local currentPed = Cped.details.ped
-                if IsPedDeadOrDying(currentPed, true) and currentPed ~= nil then
+            print("[sg-aimlabs] Checking targets... every 0.01sec")
+            for _, v in pairs(Config.targets) do
+                if v.details.ped ~= nil and IsPedDeadOrDying(v.details.ped, true) then
+                    local currentPed = v.details.ped
                     print("[sg-aimlabs] Target killed: " .. currentPed)
                     -- Delete the target
                     DeleteEntity(currentPed)
-                    Cped.details.ped = nil
-                    
+                    --v.details.ped = nil
+                        
                     killCount = killCount + 1
                     print("[sg-aimlabs] Kill count: " .. killCount)
+                    print("calling target spawn with target: ".._)
+                    TargetSpawn(_)
+                elseif(v.details.ped == nil)  then
+                    
+                    RequestModel(v.details.model)
+                    while not HasModelLoaded(v.details.model) do
+                        Wait(10)
+                    end
+                    local newCoords = GetRandomPositionAround()
+                    local head = GetRandomHeading()
+                    local area = Config.Locations.center.coords
+                    local ped = CreatePed(4, v.details.model, newCoords.x, newCoords.y, newCoords.z, head, true, true)
+                    local rad = Config.Locations.center.radius
+                    v.details.ped = ped
+                    SetBlockingOfNonTemporaryEvents(ped, true)
+                    SetPedFleeAttributes(ped, 0, false) -- disable natural fleeing
+                    SetPedCombatAttributes(ped, 17, true) -- ignore threats
+                    SetPedCombatAttributes(ped, 46, true) -- keep running even if shot
+
+                            -- No ragdoll or weapon drops
+                    SetPedCanRagdoll(ped, false)
+                    SetEntityInvincible(ped, false)
+                    SetPedDropsWeaponsWhenDead(ped, false)
+                            
+                            -- Free to run in the battlezone area
+                    FreezeEntityPosition(ped, false)
+                    TaskWanderInArea(ped, area.x, area.y, area.z, rad, 10.0, 10.0)
+                    SetPedMoveRateOverride(ped, 2.5)
+                    SetRunSprintMultiplierForPlayer(ped, 2.5)
+                else
+                    print("error creating ..".._)    
                 end
+                
             end
             if IsControlPressed(0, 73) then 
                     print("[sg-aimlabs] Exiting training...")
                     TriggerEvent('sg-aimlabs:deleteTargets')
                     Config.playing = false
                     break
-            -- elseif killCount == iniCount then
-            --     TriggerEvent('sg-aimlabs:spawnTargets')
-            --     Fixtargets()
-            --     iniCount = iniCount + 5
             end
         end
     end)
