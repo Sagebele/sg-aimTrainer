@@ -115,7 +115,7 @@ end)
 
 RegisterNetEvent('sg-aimlabs:deleteTargets', function()
     Config.playing = false
-
+    
     for _, targetData in pairs(Config.targets) do
         print("attempting to delete ".._.." with ped "..Config.targets[_].details.ped)
         local ped = Config.targets[_].details.ped
@@ -129,7 +129,7 @@ RegisterNetEvent('sg-aimlabs:deleteTargets', function()
 
     Functions.EnsureAmmo()
     Functions.UpdatePedTargetOptions()
-
+    print("ended delete targets")
 end)
 
 
@@ -182,41 +182,11 @@ RegisterNetEvent('sg-aimlabs:playing', function()
                         killCount = killCount + 1
                         print("[sg-aimlabs] Kill count: " .. killCount)
                         Functions.TargetSpawn(_)
-                    else
-                        print("error in playing")
                     end
-                    
-                elseif(v.details.ped == nil)  then
-                    
-                    RequestModel(v.details.model)
-                    while not HasModelLoaded(v.details.model) do
-                        Wait(10)
-                    end
-                    local newCoords = Functions.GetRandomPositionAround()
-                    local head = Functions.GetRandomHeading()
-                    local area = Config.Locations.center.coords
-                    local ped = CreatePed(4, v.details.model, newCoords.x, newCoords.y, newCoords.z, head, true, true)
-                    local rad = Config.Locations.center.radius
-                    v.details.ped = ped
-                    SetPedFleeAttributes(ped, 0, true)
-                    SetPedCombatAttributes(ped, 17, true)
-                    SetPedCombatAttributes(ped, 46, true)
-                    SetPedCanRagdoll(ped, false)
-                    SetEntityInvincible(ped, false)
-                    SetPedDropsWeaponsWhenDead(ped, false)
-                    FreezeEntityPosition(ped, false)
-                    TaskWanderInArea(ped, area.x, area.y, area.z, rad, 10.0, 10.0)
-                    SetPedMoveRateOverride(ped, 2.5)
-                    SetRunSprintMultiplierForPlayer(ped, 2.5)
-                else
-                    print("error creating ..".._)    
+                elseif(v.details.ped == nil and Config.playing)  then
+                    Functions.TargetSpawn(_) 
                 end
                 
-            end
-            if IsControlPressed(0, 73) then 
-                print("[sg-aimlabs] Exiting training...")
-                TriggerEvent('sg-aimlabs:deleteTargets')
-                break
             end
         end
     end)

@@ -154,6 +154,7 @@ end
 
 -- Clean spawn logic for targets
 function Functions.TargetSpawn(targetID)
+    print("in target spawn")    
     local data = Config.targets[targetID]
     local model = data.details.model
     local coords = Functions.GetRandomPositionAround()
