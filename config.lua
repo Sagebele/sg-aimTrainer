@@ -10,11 +10,13 @@ Config.exitKey = 200
 Config.enterKey = 201
 Config.speed = {}
 Config.killcount = 0
+Config.playing = false
 
 Config.Locations.MainNpc = {
     coords = vector3(1374.24, 3143.9, 39.5), 
     heading = 12.36, 
-    model = "a_m_m_business_01", 
+    model = "a_m_m_business_01",
+    spawned = false
 }
 
 Config.targets = {
