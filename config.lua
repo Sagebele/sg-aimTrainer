@@ -9,7 +9,6 @@ Config.cam = nil
 Config.exitKey = 200
 Config.enterKey = 201
 Config.speed = {}
-Config.playing = false
 Config.killcount = 0
 
 Config.Locations.MainNpc = {

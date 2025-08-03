@@ -4,7 +4,7 @@ local QBCore = exports['qb-core']:GetCoreObject()
 
 local pedSpawned = false
 local killCount = 0
-
+local playing = false
 local pedModel = Config.Locations.MainNpc.model
 local pedCoords = Config.Locations.MainNpc.coords
 local pedHeading = Config.Locations.MainNpc.heading
@@ -39,7 +39,9 @@ function SpawnPed()
     SetNetworkIdCanMigrate(netId, false)
 
     print("[sg-aimlabs] Ped created and synced.")
+    UpdatePedTargetOptions()
 end
+
 
 function Spawncam()
     local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
@@ -148,12 +150,60 @@ function TargetSpawn(targetID)
 end
 
 
-function EnsureInfiniteAmmo()
+function EnsureAmmo()
     local ped = PlayerPedId()
     local weapon = GetSelectedPedWeapon(ped)
-    GiveWeaponToPed(ped, weapon, 9999, false, true)
-    SetPedInfiniteAmmo(ped, true, weapon)
-    SetPedInfiniteAmmoClip(ped, true)
+    if playing then
+        GiveWeaponToPed(ped, weapon, 9999, false, true)
+        SetPedInfiniteAmmo(ped, true, weapon)
+        SetPedInfiniteAmmoClip(ped, true)
+    else
+        GiveWeaponToPed(ped, weapon, 0, false, true)
+        SetPedInfiniteAmmo(ped, false, weapon)
+        SetPedInfiniteAmmoClip(ped, false)
+    end 
+    
+end
+
+
+function UpdatePedTargetOptions()
+    if not Config.ped or not DoesEntityExist(Config.ped) then return end
+
+    -- First, clear all previous target options
+    exports['qb-target']:RemoveTargetEntity(Config.ped)
+
+
+    if playing then
+        exports['qb-target']:AddTargetEntity(Config.ped, {
+            options = {
+                {
+                    label = "Stop Training",
+                    icon = "fas fa-crosshairs",
+                    action = function()
+                        TriggerEvent("sg-aimlabs:deleteTargets")
+                        Config.playing = false
+                        UpdatePedTargetOptions() 
+                    end,
+                },
+            },
+            distance = 2.0,
+        })
+    else
+        exports['qb-target']:AddTargetEntity(Config.ped, {
+            options = {
+                {
+                    label = "Start Training",
+                    icon = "fas fa-crosshairs",
+                    action = function()
+                        TriggerEvent("sg-aimlabs:initializeTraining")
+                        Config.playing = true
+                        UpdatePedTargetOptions() 
+                    end,
+                },
+            },
+            distance = 2.0,
+        })
+    end
 end
 
 -------------------------------------
@@ -182,7 +232,7 @@ RegisterNetEvent('sg-aimlabs:initializeTraining', function()
     Spawncam()
     -- Message to open the UI
     TriggerEvent('sg-aimlabs:client:openUi', source)
-    Config.playing = true
+    playing = true
 end)
 ------------------------------------------
 ------------------------------------------
@@ -249,7 +299,7 @@ end)
 
 RegisterNetEvent('sg-aimlabs:deleteTargets', function()
     local counter = 0
-    Config.playing = false
+    playing = false
 
     for key, targetData in pairs(Config.targets) do
         local ped = targetData.details.ped
@@ -267,7 +317,8 @@ RegisterNetEvent('sg-aimlabs:deleteTargets', function()
     else
         print("[sg-aimlabs] All targets deleted successfully.")
     end
-
+    EnsureAmmo()
+    UpdatePedTargetOptions()
 
 end)
 
@@ -292,7 +343,9 @@ RegisterNetEvent('sg-aimlabs:playing', function()
     local tTemp = 1
     local killCount = 0
     local iniCount = 5
-    
+    playing = true
+    UpdatePedTargetOptions()
+
     if Config.cam then
         RenderScriptCams(false, true, 500, true, true)
         DoScreenFadeOut(500)
@@ -306,22 +359,18 @@ RegisterNetEvent('sg-aimlabs:playing', function()
     end
     -- Unfreeze targets
     Fixtargets()
-    EnsureInfiniteAmmo()
+    EnsureAmmo()
     CreateThread(function()
-        while true do
-            Wait(500)        
-            print("[sg-aimlabs] Checking targets... every 0.01sec")
+        while playing do
+            
+            Wait(100)        
             for _, v in pairs(Config.targets) do
                 if v.details.ped ~= nil and IsPedDeadOrDying(v.details.ped, true) then
-                    local currentPed = v.details.ped
-                    print("[sg-aimlabs] Target killed: " .. currentPed)
+                    local currentPed = Config.targets[_].details.ped
                     -- Delete the target
                     DeleteEntity(currentPed)
-                    --v.details.ped = nil
-                        
                     killCount = killCount + 1
                     print("[sg-aimlabs] Kill count: " .. killCount)
-                    print("calling target spawn with target: ".._)
                     TargetSpawn(_)
                 elseif(v.details.ped == nil)  then
                     
@@ -335,17 +384,16 @@ RegisterNetEvent('sg-aimlabs:playing', function()
                     local ped = CreatePed(4, v.details.model, newCoords.x, newCoords.y, newCoords.z, head, true, true)
                     local rad = Config.Locations.center.radius
                     v.details.ped = ped
-                    SetBlockingOfNonTemporaryEvents(ped, true)
-                    SetPedFleeAttributes(ped, 0, false) -- disable natural fleeing
+                    --SetBlockingOfNonTemporaryEvents(ped, false)
+                    SetPedFleeAttributes(ped, 0, true) -- disable natural fleeing
                     SetPedCombatAttributes(ped, 17, true) -- ignore threats
                     SetPedCombatAttributes(ped, 46, true) -- keep running even if shot
 
-                            -- No ragdoll or weapon drops
+                    -- No ragdoll or weapon drops
                     SetPedCanRagdoll(ped, false)
                     SetEntityInvincible(ped, false)
-                    SetPedDropsWeaponsWhenDead(ped, false)
-                            
-                            -- Free to run in the battlezone area
+                    SetPedDropsWeaponsWhenDead(ped, false) 
+                    -- Free to run in the battlezone area
                     FreezeEntityPosition(ped, false)
                     TaskWanderInArea(ped, area.x, area.y, area.z, rad, 10.0, 10.0)
                     SetPedMoveRateOverride(ped, 2.5)
@@ -356,10 +404,9 @@ RegisterNetEvent('sg-aimlabs:playing', function()
                 
             end
             if IsControlPressed(0, 73) then 
-                    print("[sg-aimlabs] Exiting training...")
-                    TriggerEvent('sg-aimlabs:deleteTargets')
-                    Config.playing = false
-                    break
+                print("[sg-aimlabs] Exiting training...")
+                TriggerEvent('sg-aimlabs:deleteTargets')
+                break
             end
         end
     end)
@@ -372,37 +419,10 @@ CreateThread(function()
             print("[sg-aimlabs] Ped missing, respawning...")
             SpawnPed()
         end
-        if not Config.playing then
-            exports['qb-target']:AddTargetEntity(Config.ped, {
-                options = {
-                    {
-                        label = "Start Aimlabs",
-                        icon = "fas fa-crosshairs",
-                        action = function()
-                            TriggerEvent("sg-aimlabs:initializeTraining")
-                        end,
-                    },
-                },
-                distance = 2,
-            })
-        else 
-            exports['qb-target']:RemoveTargetEntity(Config.ped, "Start Aimlabs")
-            
-            exports['qb-target']:AddTargetEntity(Config.ped, {
-                options = {
-                    {
-                        label = "End Session",
-                        icon = "fas fa-crosshairs",
-                        action = function()
-                            TriggerEvent('sg-aimlabs:deleteTargets')
-                            exports['qb-target']:RemoveTargetEntity(Config.ped, "End Session")
-                        end,
-                    },
-                },
-                distance = 2,
-            })  
-        end    
+
     end
 
 end)
+
+
 
