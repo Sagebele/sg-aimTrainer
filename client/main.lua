@@ -13,25 +13,19 @@ local EXIT_KEY = Config.exitKey or 322 -- Default to 322 if not set in config
 ----- Event Handlers
 -------------------------------------
 
-RegisterNetEvent('sg-aimlabs:spawnPed', function()
-    
-    Functions.SpawnPed()
-end)
-
 RegisterNetEvent("sg-aimlabs:client:openUi", function()
     SetNuiFocus(true, true)
     SendNUIMessage({
         type = "ui",
         status = true,
-        config = Config
     })
 
 end)
 
 
 
-RegisterNetEvent('sg-aimlabs:initializeTraining', function()
-    TriggerEvent('sg-aimlabs:spawnTargets', source)
+RegisterNetEvent('sg-aimlabs:startTraining', function()
+
     Functions.Spawncam()
     -- Message to open the UI
     TriggerEvent('sg-aimlabs:client:openUi', source)
@@ -45,7 +39,10 @@ RegisterNUICallback('Start', function(data, cb)
     SendNUIMessage({ 
         type = 'hideUI', 
         status = false,
-        config = Config
+    })
+    SendNUIMessage({
+        type = "killCounterUpdate",
+        value = 0
     })
     SetNuiFocus(false, false)
     cb('ok')
@@ -85,33 +82,10 @@ RegisterNUICallback('Exit', function(data, cb)
     print("[sg-aimlabs] Exiting training...")
     TriggerEvent('sg-aimlabs:deleteTargets')
     TriggerEvent("sg-aimlabs:endTrainerCam")
+    TriggerServerEvent('sg-aimlabs:Server:EndTraining')
 end)
 
-----------------------------------------
-RegisterNetEvent('sg-aimlabs:spawnTargets', function()
-    
-    local targetModel = Config.targets.t1.details.model or "a_m_y_hasjew_01"
-    local positions = {}
-    local targetHeading = Config.targets.t1.details.heading or 285.92
-    local temp = 1
 
-    RequestModel(targetModel)
-    while not HasModelLoaded(targetModel) do 
-        Wait(10) 
-    end
-
-    for _, pos in pairs(Config.targets) do
-        pos.coords = Functions.GetRandomPositionAround()
-        local ped = CreatePed(4, targetModel, pos.coords.x, pos.coords.y, pos.coords.z, 0.0, false, true)
-        SetEntityInvincible(ped, true)
-        FreezeEntityPosition(ped, true)
-        TaskStartScenarioInPlace(ped, "WORLD_HUMAN_HANG_OUT_STREET", 0, true)
-        SetBlockingOfNonTemporaryEvents(ped, true)
-        pos.details.ped = ped
-
-    end
-
-end)
 
 RegisterNetEvent('sg-aimlabs:deleteTargets', function()
     Config.playing = false
@@ -130,9 +104,9 @@ RegisterNetEvent('sg-aimlabs:deleteTargets', function()
     SendNUIMessage({
         type = "hideKillCounter"
     })
+    TriggerServerEvent('sg-aimlabs:Server:EndTraining')
     Functions.EnsureAmmo()
     Functions.UpdatePedTargetOptions()
-    print("ended delete targets")
 end)
 
 
@@ -158,24 +132,10 @@ RegisterNetEvent('sg-aimlabs:playing', function()
     Config.playing = true
     Functions.UpdatePedTargetOptions()
 
-    if Config.cam then
-        RenderScriptCams(false, true, 500, true, true)
-        DoScreenFadeOut(500)
-        Wait(600)
-        DoScreenFadeIn(500)
-        DestroyCam(Config.cam, false)
-        Config.cam = nil
-        -- Unfreeze player
-        FreezeEntityPosition(PlayerPedId(), false)
-        print("[sg-aimlabs] Camera destroyed and player unfrozen.")
-    end
-    -- Unfreeze targets
-    Functions.Fixtargets()
     Functions.EnsureAmmo()
     CreateThread(function()
         while Config.playing do
-            if not Config.playing then break end
-            Wait(100)        
+            Wait(10)        
             for _, v in pairs(Config.targets) do
                 if v.details.ped ~= nil and IsPedDeadOrDying(v.details.ped, true) then
                     local currentPed = Config.targets[_].details.ped
@@ -189,8 +149,11 @@ RegisterNetEvent('sg-aimlabs:playing', function()
                         })
                         Functions.TargetSpawn(_)
                     end
-                elseif(v.details.ped == nil and Config.playing)  then
+                elseif(v.details.ped == nil and Config.playing) then
                     Functions.TargetSpawn(_) 
+                    SetPedMoveRateOverride(Config.targets[_].details.ped, Config.speed.tSpeed)
+                else
+                    SetPedMoveRateOverride(Config.targets[_].details.ped, Config.speed.tSpeed)
                 end
                 
             end

@@ -82,38 +82,37 @@ function Functions.SpawnPed()
     Functions.UpdatePedTargetOptions()
 end
 
-function Functions.Fixtargets()
-    -- Ensure all targets are set up correctly
-    local ped
-    local tCount = 0
-    local speedMul = Config.speed.runSpeed 
-    local runSpeedMul = Config.speed.runSpeed
-    local wanderArea = Config.Locations.center.coords
-    local radius = Config.Locations.center.radius
-    for i,pedN in pairs(Config.targets) do
-        ped = pedN.details.ped
-        print("fixing ped: ".. ped)
-        if ped and DoesEntityExist(ped) then
-            SetBlockingOfNonTemporaryEvents(ped, true)
-            SetPedFleeAttributes(ped, 0, false) -- disable natural fleeing
-            SetPedCombatAttributes(ped, 17, true) -- ignore threats
-            SetPedCombatAttributes(ped, 46, true) -- keep running even if shot
+-- function Functions.Fixtargets()
+--     -- Ensure all targets are set up correctly and make them move
+--     local ped
+--     local tCount = 0
+--     local speedMul = Config.speed.runSpeed 
+--     local runSpeedMul = Config.speed.runSpeed
+--     local wanderArea = Config.Locations.center.coords
+--     local radius = Config.Locations.center.radius
+--     for i,pedN in pairs(Config.targets) do
+--         ped = pedN.details.ped
+--         print("fixing ped: ".. ped)
+--         if ped and DoesEntityExist(ped) then
+--             SetBlockingOfNonTemporaryEvents(ped, true)
+--             SetPedFleeAttributes(ped, 0, false) -- disable natural fleeing
+--             SetPedCombatAttributes(ped, 17, true) -- ignore threats
+--             SetPedCombatAttributes(ped, 46, true) -- keep running even if shot
 
-            -- No ragdoll or weapon drops
-            SetPedCanRagdoll(ped, false)
-            SetEntityInvincible(ped, false)
-            SetPedDropsWeaponsWhenDead(ped, false)
+--             -- No ragdoll or weapon drops
+--             SetPedCanRagdoll(ped, false)
+--             SetEntityInvincible(ped, false)
+--             SetPedDropsWeaponsWhenDead(ped, false)
             
-            -- Free to run in the battlezone area
-            FreezeEntityPosition(ped, false)
-            TaskWanderInArea(ped, wanderArea.x, wanderArea.y, wanderArea.z, radius, 10.0, 10.0)
-            SetPedMoveRateOverride(ped, speedMul)
-            SetRunSprintMultiplierForPlayer(ped, runSpeedMul)
-        end
+--             -- Free to run in the battlezone area
+--             FreezeEntityPosition(ped, false)
+--             TaskWanderInArea(ped, wanderArea.x, wanderArea.y, wanderArea.z, radius, 100, 0.5)
+            
+--         end
 
 
-    end
-end
+--     end
+-- end
 
 function Functions.UpdatePedTargetOptions()
     if not Config.ped or not DoesEntityExist(Config.ped) then return end
@@ -142,7 +141,7 @@ function Functions.UpdatePedTargetOptions()
                     label = "Start Training",
                     icon = "fas fa-crosshairs",
                     action = function()
-                        TriggerEvent("sg-aimlabs:initializeTraining")
+                        TriggerServerEvent("sg-aimlabs:Server:initializeTraining")
                         Functions.UpdatePedTargetOptions() 
                     end,
                 },
@@ -170,19 +169,18 @@ function Functions.TargetSpawn(targetID)
     SetBlockingOfNonTemporaryEvents(ped, true)
     SetEntityInvincible(ped, false)
     SetPedFleeAttributes(ped, 0, false)
-    SetPedCombatAttributes(ped, 17, true)
-    SetPedCombatAttributes(ped, 46, true)
+    SetPedCombatAttributes(ped, 38, true)
+    SetPedCombatAttributes(ped, 68, true)
+    SetPedCombatAttributes(ped, 4, true)
     SetPedDropsWeaponsWhenDead(ped, false)
     SetPedCanRagdoll(ped, false)
     SetEntityNoCollisionEntity(ped, PlayerPedId(), true)
 
     local center = Config.Locations.center.coords
     local radius = Config.Locations.center.radius
-    local speedMul = Config.speed.tSpeed or 2.5
 
-    TaskWanderInArea(ped, center.x, center.y, center.z, radius, 10.0, 10.0)
-    SetPedMoveRateOverride(ped, speedMul)
-    SetRunSprintMultiplierForPlayer(ped, speedMul)
+    TaskWanderInArea(ped, center.x, center.y, center.z, radius, 100, 10)
+    SetRunSprintMultiplierForPlayer(ped, Config.speed.runSpeed)
 
     print("[sg-aimlabs] Spawned target: " .. tostring(targetID))
 end

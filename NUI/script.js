@@ -22,12 +22,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (startButton){
         startButton.addEventListener("click", () => 
         fetchToLua({ action: "hideUI" }, 'Start'));
-        document.querySelector(".killCounter").style.display = "block";
+        
     }    
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Return') {
             fetchToLua({ action: "hideUI" }, 'Start')
-            document.querySelector(".killCounter").style.display = "block";
+            
         }
     });
 
@@ -98,6 +98,7 @@ window.addEventListener("message", (event) => {
 
     if(event.data.type === "killCounterUpdate"){
         document.getElementById("killCountValue").textContent = event.data.value;
+        document.querySelector(".killCounter").style.display = "block";
     }
     else if(event.data.type == "hideKillCounter"){
         document.querySelector(".killCounter").style.display = "none";

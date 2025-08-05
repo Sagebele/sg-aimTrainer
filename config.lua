@@ -75,6 +75,6 @@ Config.Locations.center = {
 }
 
 Config.speed = {
-        tSpeed = 2.5, -- Speed multiplier for the target
-        runSpeed = 2.5, -- Speed multiplier for running
+        tSpeed = 5, -- Speed multiplier for the target(min: 0 ,max: 10)
+        runSpeed = 1.5, -- Speed multiplier for running(1 to 1.5)
 }
