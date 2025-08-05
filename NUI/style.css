@@ -74,7 +74,7 @@ body {
     background: #c82333;
 }
 
-.cHud {
+.closeHud{
     position: fixed;
     bottom: 2%;
     right: 2%;
@@ -90,16 +90,26 @@ body {
 
 }
 
-        .cHud p {
-            margin: 5px 0;
-            line-height: 1.4;
-        }
 
-        #conExit, #conEnter {
-            background-color: rgba(255, 255, 255, 0.9); /* White-like background for spans */
-            color: #000000; /* Black text for contrast */
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
 
+#conExit, #conEnter {
+    background-color: rgba(255, 255, 255, 0.9); /* White-like background for spans */
+    color: #000000; /* Black text for contrast */
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.killCounter {
+    position: fixed;
+    top: 5%;
+    right: 2%;
+    background-color: rgba(0, 34, 66, 0.425);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    display: none; /* Hidden by default */
+}

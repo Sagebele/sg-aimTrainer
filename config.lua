@@ -9,7 +9,7 @@ Config.cam = nil
 Config.exitKey = 200
 Config.enterKey = 201
 Config.speed = {}
-Config.killcount = 0
+
 Config.playing = false
 
 Config.Locations.MainNpc = {
@@ -65,8 +65,8 @@ Config.targets = {
 
 
 Config.Locations.Camera = {
-    coords = vector3(1340.46, 3152.7, 50.09), 
-    lookAt = vector3(1319.14, 3146.86, 40.41), 
+    coords = vector3(1374.34, 3145.22, 41), 
+    lookAt = vector3(1374.87, 3143.94, 41),  
 }
 
 Config.Locations.center = {

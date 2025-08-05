@@ -2,7 +2,6 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 
 
-local killCount = 0
 local pedModel = Config.Locations.MainNpc.model
 local pedCoords = Config.Locations.MainNpc.coords
 local pedHeading = Config.Locations.MainNpc.heading
@@ -46,6 +45,7 @@ RegisterNUICallback('Start', function(data, cb)
     SendNUIMessage({ 
         type = 'hideUI', 
         status = false,
+        config = Config
     })
     SetNuiFocus(false, false)
     cb('ok')
@@ -57,18 +57,18 @@ end)
 
 RegisterNUICallback('changeOption', function(data, cb)
 
-    local radius 
+    local distance 
     if data.option == "near" then
-        radius = 3
+        distance = -5
     elseif data.option == "medium" then
-        radius = 5
+        distance = 0
     elseif data.option == "far" then
-        radius = 10
+        distance = 5
     end
     
-    if radius then
-        Config.Locations.center.radius = radius
-        print("[sg-aimlabs] Training distance set to: " .. radius)
+    if distance then
+        Config.Locations.center.coords.x = Config.Locations.center.coords.x + distance
+        print("[sg-aimlabs] Training distance set to: " .. distance)
     end
     cb({'ok'})
 
@@ -127,6 +127,9 @@ RegisterNetEvent('sg-aimlabs:deleteTargets', function()
         end
     end
 
+    SendNUIMessage({
+        type = "hideKillCounter"
+    })
     Functions.EnsureAmmo()
     Functions.UpdatePedTargetOptions()
     print("ended delete targets")
@@ -180,7 +183,10 @@ RegisterNetEvent('sg-aimlabs:playing', function()
                     if currentPed then 
                         DeleteEntity(currentPed)
                         killCount = killCount + 1
-                        print("[sg-aimlabs] Kill count: " .. killCount)
+                        SendNUIMessage({
+                            type = "killCounterUpdate",
+                            value = killCount
+                        })
                         Functions.TargetSpawn(_)
                     end
                 elseif(v.details.ped == nil and Config.playing)  then

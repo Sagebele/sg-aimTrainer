@@ -13,30 +13,38 @@ document.addEventListener("DOMContentLoaded", () => {
             selectedOption = option.getAttribute("data-value");
 
             fetchToLua({option: selectedOption}, 'changeOption');
-           
+
         });
+    })    
 
-    });
-
-
-
-    // Handle Start button
+    // Handle Start button & Enter
     const startButton = document.querySelector(".button.start");
-    if (startButton) 
-        startButton.addEventListener("click", () => fetchToLua({ action: "hideUI" }, 'Start'));
-    
+    if (startButton){
+        startButton.addEventListener("click", () => 
+        fetchToLua({ action: "hideUI" }, 'Start'));
+        document.querySelector(".killCounter").style.display = "block";
+    }    
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            fetchToLua({ action: "hideUI" }, 'Start')
+            document.querySelector(".killCounter").style.display = "block";
+        }
+    });
 
     // Handle Exit button
     const exitButton = document.querySelector(".button.exit");
-    if (exitButton) 
-        exitButton.addEventListener("click", () => fetchToLua({ action: "hideUI" }, 'Exit'));
-
+    if (exitButton){ 
+        exitButton.addEventListener("click", () => 
+        fetchToLua({ action: "hideUI" }, 'Exit'));
+    }    
     // Handle Escape key
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             fetchToLua({ action: "hideUI" }, 'Exit');
         }
     });
+
+    
 });
 
 
@@ -66,7 +74,7 @@ function fetchToLua(data, callback) {
 function cleaningUI(){
     const container = document.querySelector(".container");
     container.style.display = "none"; // Hide the UI
-    document.querySelector(".cHud").style.display = "none";
+    document.querySelector(".closeHud").style.display = "none";
     selectedOption = null; // Reset selected option
     document.querySelectorAll(".option").forEach((opt) => opt.classList.remove("selected")); // Remove selection from options
     uiVisible = false; // Reset the uiVisible flag
@@ -75,17 +83,24 @@ function cleaningUI(){
 // Listen for NUI messages to show/hide UI
 window.addEventListener("message", (event) => {
     if(event.data.type === "ui" && !uiVisible){
+        uiVisible = true; // Set UI visible flag
         if(event.data.status === true ) {
             console.log("Showing UI with config:", event.data.config);
             document.querySelector(".container").style.display = "block";
-            document.querySelector(".cHud").style.display = "block";
+            document.querySelector(".closeHud").style.display = "block";
         }
-        uiVisible = true; // Set UI visible flag
+        
     }    
     else if(event.data.type === "hideUI" && uiVisible) {
         cleaningUI();
     }
-    else{
-        console.log("Unknown message type or UI already hidden.");
+
+
+    if(event.data.type === "killCounterUpdate"){
+        document.getElementById("killCountValue").textContent = event.data.value;
     }
+    else if(event.data.type == "hideKillCounter"){
+        document.querySelector(".killCounter").style.display = "none";
+        document.getElementById("killCountValue").textContent = 0;
+    }    
 });

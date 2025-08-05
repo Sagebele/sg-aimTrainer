@@ -174,6 +174,7 @@ function Functions.TargetSpawn(targetID)
     SetPedCombatAttributes(ped, 46, true)
     SetPedDropsWeaponsWhenDead(ped, false)
     SetPedCanRagdoll(ped, false)
+    SetEntityNoCollisionEntity(ped, PlayerPedId(), true)
 
     local center = Config.Locations.center.coords
     local radius = Config.Locations.center.radius
