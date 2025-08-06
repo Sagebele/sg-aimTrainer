@@ -5,7 +5,7 @@ local QBCore = exports['qb-core']:GetCoreObject()
 local pedModel = Config.Locations.MainNpc.model
 local pedCoords = Config.Locations.MainNpc.coords
 local pedHeading = Config.Locations.MainNpc.heading
-
+local tempCoords
 local EXIT_KEY = Config.exitKey or 322 -- Default to 322 if not set in config
 
 
@@ -25,8 +25,9 @@ end)
 
 
 RegisterNetEvent('sg-aimlabs:startTraining', function()
-
+    local playerPed = PlayerPedId()
     Functions.Spawncam()
+    SetEntityVisible(playerPed, false, false) -- (entity, toggle, localOnly)
     -- Message to open the UI
     TriggerEvent('sg-aimlabs:client:openUi', source)
     Config.playing = true
@@ -46,33 +47,24 @@ RegisterNUICallback('Start', function(data, cb)
     })
     SetNuiFocus(false, false)
     cb('ok')
+    
+    if data.option == "Near" then
+        Config.Locations.center.coords = Config.Locations.center.tempCoords.near
+    elseif data.option == "Far" then
+        Config.Locations.center.coords = Config.Locations.center.tempCoords.medium
+    else
+        Config.Locations.center.coords = Config.Locations.center.tempCoords.far
+    end    
 
-    print("[sg-aimlabs] Have fun training!")
     TriggerEvent("sg-aimlabs:endTrainerCam")
     TriggerEvent('sg-aimlabs:playing')
 end)
 
-RegisterNUICallback('changeOption', function(data, cb)
 
-    local distance 
-    if data.option == "near" then
-        distance = -5
-    elseif data.option == "medium" then
-        distance = 0
-    elseif data.option == "far" then
-        distance = 5
-    end
-    
-    if distance then
-        Config.Locations.center.coords.x = Config.Locations.center.coords.x + distance
-        print("[sg-aimlabs] Training distance set to: " .. distance)
-    end
-    cb({'ok'})
-
-
-end)
 
 RegisterNUICallback('Exit', function(data, cb)
+    local playerPed = PlayerPedId()
+    SetEntityVisible(playerPed, true, false) 
     SendNUIMessage({ 
         type = 'hideUI',
         status = false
@@ -89,17 +81,17 @@ end)
 
 RegisterNetEvent('sg-aimlabs:deleteTargets', function()
     Config.playing = false
-    
     for _, targetData in pairs(Config.targets) do
         print("attempting to delete ".._.." with ped "..Config.targets[_].details.ped)
         local ped = Config.targets[_].details.ped
         if ped and DoesEntityExist(ped) then
             DeleteEntity(ped)
             Config.targets[_].details.ped = nil
+            print("Deleted ".._)
         else
             print("[sg-aimlabs] Target does not exist or nil: " .. tostring(_))
         end
-    end
+    end 
 
     SendNUIMessage({
         type = "hideKillCounter"
@@ -129,12 +121,15 @@ RegisterNetEvent('sg-aimlabs:playing', function()
 
     local tTemp = 1
     local killCount = 0
+    local playerPed = PlayerPedId()
     Config.playing = true
     Functions.UpdatePedTargetOptions()
+    SetEntityVisible(playerPed, true, false)
 
     Functions.EnsureAmmo()
     CreateThread(function()
         while Config.playing do
+            -- SetEveryoneIgnorePlayer(playerPed, true)
             Wait(10)        
             for _, v in pairs(Config.targets) do
                 if v.details.ped ~= nil and IsPedDeadOrDying(v.details.ped, true) then
@@ -150,12 +145,8 @@ RegisterNetEvent('sg-aimlabs:playing', function()
                         Functions.TargetSpawn(_)
                     end
                 elseif(v.details.ped == nil and Config.playing) then
-                    Functions.TargetSpawn(_) 
-                    SetPedMoveRateOverride(Config.targets[_].details.ped, Config.speed.tSpeed)
-                else
-                    SetPedMoveRateOverride(Config.targets[_].details.ped, Config.speed.tSpeed)
+                    Functions.TargetSpawn(_)
                 end
-                
             end
         end
     end)

@@ -69,12 +69,16 @@ Config.Locations.Camera = {
     lookAt = vector3(1374.87, 3143.94, 41),  
 }
 
+
+
 Config.Locations.center = {
-    coords = vector3(1306.79, 3143.55, 39.5),
+    tempCoords = {
+        near = vector3(1344.21, 3153.49, 39.5),
+        medium = vector3(1312.73, 3145.09, 39.5),
+        far = vector3(1287.64, 3138.36, 39.5),
+    },
+    coords = vector3(1312.73, 3145.09, 39.5),
     radius = 6,
 }
 
-Config.speed = {
-        tSpeed = 5, -- Speed multiplier for the target(min: 0 ,max: 10)
-        runSpeed = 1.5, -- Speed multiplier for running(1 to 1.5)
-}
+Config.runSpeed = 10.0

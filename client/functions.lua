@@ -11,11 +11,47 @@ end
 function Functions.GetRandomPositionAround()
     local baseCoords = Config.Locations.center.coords
     local radius = Config.Locations.center.radius or 5.0
-    local angle = math.random() * math.pi * 2
-    local offsetX = math.cos(angle) * radius
-    local offsetY = math.sin(angle) * radius
-    return vector3(baseCoords.x + offsetX, baseCoords.y + offsetY, baseCoords.z)
+    local minDistance = 2.0 -- minimum allowed distance between targets
+    local maxAttempts = 10
+
+    for attempt = 1, maxAttempts do
+        local angle = math.random() * math.pi * 2
+        local offsetX = math.cos(angle) * radius
+        local offsetY = math.sin(angle) * radius
+        local newPos = vector3(baseCoords.x + offsetX, baseCoords.y + offsetY, baseCoords.z)
+
+        -- Check distance from other spawned targets
+        local tooClose = false
+        for _, target in pairs(Config.targets) do
+            if target.details.ped and DoesEntityExist(target.details.ped) then
+                local pedPos = GetEntityCoords(target.details.ped)
+                if #(pedPos - newPos) < minDistance then
+                    tooClose = true
+                    break
+                end
+            end
+        end
+
+        if not tooClose then
+            return newPos
+        end
+    end
+
+    -- If we fail to find a spaced-out spot, just return the last generated one
+    return vector3(baseCoords.x + math.cos(0) * radius, baseCoords.y + math.sin(0) * radius, baseCoords.z)
 end
+
+function Functions.MakePedRunRandomly(ped)
+    local speed = Config.runSpeed
+    CreateThread(function()
+        while DoesEntityExist(ped) and not IsPedDeadOrDying(ped, true) do
+            local targetPos = Functions.GetRandomPositionAround()
+            TaskGoToCoordAnyMeans(ped, targetPos.x, targetPos.y, targetPos.z, speed, 0, false, 786603, 0) -- 3.0 = run speed
+            Wait(3000) -- wait before picking next position
+        end
+    end)
+end
+
 
 function Functions.EnsureAmmo()
     local ped = PlayerPedId()
@@ -43,9 +79,9 @@ function Functions.Spawncam()
 
     -- Optional: Freeze player + fade screen
     FreezeEntityPosition(PlayerPedId(), true)
-    DoScreenFadeOut(500)
-    Wait(600)
-    DoScreenFadeIn(500)
+    DoScreenFadeOut(300)
+    Wait(700)
+    DoScreenFadeIn(700)
 
     
 end
@@ -82,37 +118,7 @@ function Functions.SpawnPed()
     Functions.UpdatePedTargetOptions()
 end
 
--- function Functions.Fixtargets()
---     -- Ensure all targets are set up correctly and make them move
---     local ped
---     local tCount = 0
---     local speedMul = Config.speed.runSpeed 
---     local runSpeedMul = Config.speed.runSpeed
---     local wanderArea = Config.Locations.center.coords
---     local radius = Config.Locations.center.radius
---     for i,pedN in pairs(Config.targets) do
---         ped = pedN.details.ped
---         print("fixing ped: ".. ped)
---         if ped and DoesEntityExist(ped) then
---             SetBlockingOfNonTemporaryEvents(ped, true)
---             SetPedFleeAttributes(ped, 0, false) -- disable natural fleeing
---             SetPedCombatAttributes(ped, 17, true) -- ignore threats
---             SetPedCombatAttributes(ped, 46, true) -- keep running even if shot
 
---             -- No ragdoll or weapon drops
---             SetPedCanRagdoll(ped, false)
---             SetEntityInvincible(ped, false)
---             SetPedDropsWeaponsWhenDead(ped, false)
-            
---             -- Free to run in the battlezone area
---             FreezeEntityPosition(ped, false)
---             TaskWanderInArea(ped, wanderArea.x, wanderArea.y, wanderArea.z, radius, 100, 0.5)
-            
---         end
-
-
---     end
--- end
 
 function Functions.UpdatePedTargetOptions()
     if not Config.ped or not DoesEntityExist(Config.ped) then return end
@@ -153,36 +159,45 @@ end
 
 -- Clean spawn logic for targets
 function Functions.TargetSpawn(targetID)
-    print("in target spawn")    
     local data = Config.targets[targetID]
     local model = data.details.model
     local coords = Functions.GetRandomPositionAround()
+    data.coords = coords
     local heading = Functions.GetRandomHeading()
+    data.details.heading = heading
+    local radius = Config.Locations.center.radius
+    local center = Config.Locations.center.coords
 
     RequestModel(model)
     while not HasModelLoaded(model) do Wait(10) end
 
     local ped = CreatePed(4, model, coords.x, coords.y, coords.z, heading, true, true)
     data.details.ped = ped
-
-    FreezeEntityPosition(ped, false)
+    
+    ClearPedTasksImmediately(ped)
     SetBlockingOfNonTemporaryEvents(ped, true)
+    SetPedFleeAttributes(ped, 0, false)
     SetEntityInvincible(ped, false)
     SetPedFleeAttributes(ped, 0, false)
-    SetPedCombatAttributes(ped, 38, true)
-    SetPedCombatAttributes(ped, 68, true)
-    SetPedCombatAttributes(ped, 4, true)
+    SetPedCombatAttributes(ped, 17, true) -- Always fight, ignore threats
+    SetPedCombatAttributes(ped, 38, true) -- Keep running when shot at
+    SetPedCombatAttributes(ped, 46, true) -- Keep running when shot at
+    SetPedSeeingRange(ped, 0.0)
+    SetPedHearingRange(ped, 0.0)
+    SetPedAlertness(ped, 0)
     SetPedDropsWeaponsWhenDead(ped, false)
     SetPedCanRagdoll(ped, false)
+
+    -- Disable collisions with player & other targets
     SetEntityNoCollisionEntity(ped, PlayerPedId(), true)
+    for _, otherTarget in pairs(Config.targets) do
+        if otherTarget.details.ped and DoesEntityExist(otherTarget.details.ped) then
+            SetEntityNoCollisionEntity(ped, otherTarget.details.ped, true)
+            SetEntityNoCollisionEntity(otherTarget.details.ped, ped, true)
+        end
+    end
 
-    local center = Config.Locations.center.coords
-    local radius = Config.Locations.center.radius
-
-    TaskWanderInArea(ped, center.x, center.y, center.z, radius, 100, 10)
-    SetRunSprintMultiplierForPlayer(ped, Config.speed.runSpeed)
-
-    print("[sg-aimlabs] Spawned target: " .. tostring(targetID))
+    Functions.MakePedRunRandomly(ped) -- make them actively running
 end
 
 

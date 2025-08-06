@@ -32,7 +32,7 @@ RegisterNetEvent('sg-aimlabs:Server:EndTraining', function ()
 
     -- Put player in separate bucket
     local ped = GetPlayerPed(src)
-    SetEntityRoutingBucket(ped, 1)
+    SetEntityRoutingBucket(ped, 0)
     print(("[sg-aimlabs] Player %s moved to bucket %s"):format(src, 1))
 
 end)

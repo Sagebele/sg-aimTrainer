@@ -8,12 +8,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         option.addEventListener("click", () => {
-            document.querySelectorAll(".option").forEach((opt) => opt.classList.remove("selected"));
+            document.querySelectorAll(".option").forEach((opt) => 
+            opt.classList.remove("selected"));
             option.classList.add("selected");
-            selectedOption = option.getAttribute("data-value");
-
-            fetchToLua({option: selectedOption}, 'changeOption');
-
+            selectedOption = option.innerHTML;
+            console.log("in NUI option: ", selectedOption)
+            //fetchToLua({option: selectedOption}, 'changeOption');
         });
     })    
 
@@ -21,13 +21,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const startButton = document.querySelector(".button.start");
     if (startButton){
         startButton.addEventListener("click", () => 
-        fetchToLua({ action: "hideUI" }, 'Start'));
-        
+        fetchToLua({ action: "hideUI", option: selectedOption}, 'Start'))
     }    
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Return') {
-            fetchToLua({ action: "hideUI" }, 'Start')
-            
+            fetchToLua({ action: "hideUI", option: selectedOption }, 'Start')
         }
     });
 
